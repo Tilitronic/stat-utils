@@ -11,8 +11,8 @@ export default {
   components: { STable },
   data() {
     return {
-      columns: 15,
-      rows: 20,
+      columns: 50,
+      rows: 50,
     };
   },
 };
