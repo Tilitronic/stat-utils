@@ -1,14 +1,14 @@
 <template>
   <q-page>
-    <STable :columns="columns" :rows="rows"></STable>
+    <QSTable :columns="columns" :rows="rows"></QSTable>
   </q-page>
 </template>
 
 <script>
-import STable from './STable/STable.vue';
+import QSTable from '../components/QSTable.vue';
 
 export default {
-  components: { STable },
+  components: { QSTable },
   data() {
     return {
       columns: 200,

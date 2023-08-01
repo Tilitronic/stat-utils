@@ -32,8 +32,6 @@
                 </p>
               </template>
             </div>
-            <!-- <SInput v-model="row[colIndex]" :isSelected="state.selectedCells[rowIndex][colIndex]">
-            </SInput> -->
           </td>
         </tr>
       </tbody>

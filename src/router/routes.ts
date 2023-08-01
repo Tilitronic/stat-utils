@@ -17,6 +17,14 @@ const routes: RouteRecordRaw[] = [
         path: 'main',
         component: () => import('pages/MainAnalysisPage/MainAnalysisPage.vue'),
       },
+      {
+        path: 'qvs',
+        component: () => import('src/pages/virtualScrollTable.vue'),
+      },
+      {
+        path: 'rsz',
+        component: () => import('src/components/windowResize.vue'),
+      },
     ],
   },
 
