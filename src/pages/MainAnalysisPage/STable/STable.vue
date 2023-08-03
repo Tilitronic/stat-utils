@@ -11,8 +11,27 @@
             @mouseup="handleCellMouseUp"
             :class="{ selected: state.selectedCells[rowIndex][colIndex] }"
           >
-            <SInput v-model="row[colIndex]" :isSelected="state.selectedCells[rowIndex][colIndex]">
-            </SInput>
+            <div
+              class="sInput"
+              @dblclick="handleDoubleClick(rowIndex, colIndex)"
+            >
+              <template v-if="state.editingCells[rowIndex][colIndex]">
+                <input
+                  :ref="`input${rowIndex}${colIndex}`"
+                  class="sInput"
+                  :value="row[colIndex]"
+                  @input="updateInput($event, rowIndex, colIndex)"
+                  @blur="handleBlur(rowIndex, colIndex)"
+                  @keydown="handleKeyPress($event, rowIndex, colIndex)"
+                />
+              </template>
+
+              <template v-else>
+                <p class="cellLabel prevent-select">
+                  {{ state.table[rowIndex][colIndex] }}
+                </p>
+              </template>
+            </div>
           </td>
         </tr>
       </tbody>
@@ -22,11 +41,11 @@
 
 <script>
 import { reactive } from 'vue';
-import SInput from './SInput.vue';
+// import SInput from './SInput.vue';
 
 export default {
   name: 'STable',
-  components: { SInput },
+  // components: { SInput },
   props: {
     columns: {
       type: Number,
@@ -41,9 +60,10 @@ export default {
     return {
       state: reactive({
         table: this.createTable(this.rows, this.columns, 0),
+        delayedTable: this.createTable(this.rows, this.columns, 0),
         selectedCells: this.createTable(this.rows, this.columns),
         isMouseDown: false,
-        editingCell: null,
+        // editingCell: null,
         editingCells: this.createTable(this.rows, this.columns, false),
         dragging: false,
         startRow: -1,
@@ -61,36 +81,64 @@ export default {
       }
       return table;
     },
-    handleCellInput(rowIndex, columnIndex, value) {
-      console.log(rowIndex, columnIndex, value);
-      this.state.table[rowIndex][columnIndex] = value;
+    updateInput(event, rowI, colI) {
+      this.state.table[rowI][colI] = this.formatValue(event.target.value);
+    },
+    formatValue(value) {
+      if (value === null) {
+        return null;
+      }
+      if (/^\s/.test(value)) {
+        return '';
+      }
+      return value.trim().replace(/ +/g, ' ');
+    },
+    handleDoubleClick(rowIndex, colIndex) {
+      this.state.editingCells[rowIndex][colIndex] = true;
+      this.$nextTick(() => {
+        this.$refs[`input${rowIndex}${colIndex}`][0].focus();
+      });
+    },
+    handleKeyPress(event, rowIndex, colIndex) {
+      if (event.key === 'Enter') {
+        // this.$emit('update:modelValue', this.innerModel);
+        this.state.editingCells[rowIndex][colIndex] = false;
+        this.state.delayedTable[rowIndex][colIndex] = this.state.table[rowIndex][colIndex];
+      } else if (event.key === 'Escape') {
+        this.state.table[rowIndex][colIndex] = this.state.delayedTable[rowIndex][colIndex];
+        this.state.editingCells[rowIndex][colIndex] = false;
+      }
+    },
+    handleBlur(rowIndex, colIndex) {
+      this.state.delayedTable[rowIndex][colIndex] = this.state.table[rowIndex][colIndex];
+      this.state.editingCells[rowIndex][colIndex] = false;
     },
     isSelected(rowIndex, columnIndex) {
       return this.state.selectedCells[rowIndex][columnIndex];
-    },
-    isEditing(rowIndex, columnIndex) {
-      return this.state.editingCells[rowIndex][columnIndex];
-    },
-    editCell(rowIndex, columnIndex) {
-      this.state.editingCells = this.createTable(this.rows, this.columns, false);
-      this.state.editingCells[rowIndex][columnIndex] = true;
     },
     handleCellMouseDown(event, rowIndex, columnIndex) {
       // event.preventDefault();
       this.state.dragging = true;
       this.state.startRow = rowIndex;
       this.state.startCol = columnIndex;
-      this.state.selectedCells = this.createTable(this.rows, this.columns, false);
+      this.state.selectedCells = this.createTable(
+        this.rows,
+        this.columns,
+        false,
+      );
       this.state.selectedCells[rowIndex][columnIndex] = true;
     },
     mouseMoveHandler(event, rowIndex, columnIndex) {
       if (this.state.dragging) {
-        console.log('!');
         const startRow = Math.min(this.state.startRow, rowIndex);
         const startCol = Math.min(this.state.startCol, columnIndex);
         const endRow = Math.max(this.state.startRow, rowIndex);
         const endCol = Math.max(this.state.startCol, columnIndex);
-        const newSelectedCells = this.createTable(this.rows, this.columns, false);
+        const newSelectedCells = this.createTable(
+          this.rows,
+          this.columns,
+          false,
+        );
         for (let i = startRow; i <= endRow; i++) {
           for (let j = startCol; j <= endCol; j++) {
             newSelectedCells[i][j] = true;
@@ -118,5 +166,21 @@ export default {
 }
 .selected {
   background-color: blue;
+}
+
+.sInput {
+  max-width: 100px;
+  max-height: 35px;
+  min-height: 35px;
+  min-width: 100px;
+}
+.sInput input {
+  max-width: 100%;
+}
+
+.cellLabel {
+  max-width: 100%;
+  padding: 0;
+  overflow: hidden;
 }
 </style>
