@@ -21,10 +21,6 @@ const routes: RouteRecordRaw[] = [
         path: 'qvs',
         component: () => import('src/pages/virtualScrollTable.vue'),
       },
-      {
-        path: 'rsz',
-        component: () => import('src/components/windowResize.vue'),
-      },
     ],
   },
 

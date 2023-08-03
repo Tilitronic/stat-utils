@@ -53,16 +53,10 @@ const linksList = [
     link: '/#/main',
   },
   {
-    title: 'QVS',
+    title: 'Virtual Scroll Table',
     caption: '',
     icon: 'school',
     link: '/#/qvs',
-  },
-  {
-    title: 'resize capturing',
-    caption: '',
-    icon: 'school',
-    link: '/#/rsz',
   },
 ];
 

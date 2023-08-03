@@ -10,7 +10,7 @@
       <div class="virtualTableWrapper" :style="visibleDataStyle">
         <table>
           <tbody>
-            <template :key="rowIndex" v-for="(row, rowIndex) in state.table">
+            <template :key="rowIndex" v-for="(row, rowIndex) in table">
               <tr v-if="visibleItems.rows.includes(rowIndex)">
                 <template v-for="(cell, colIndex) in row" :key="colIndex">
                   <td
@@ -19,14 +19,14 @@
                     @mouseover="mouseMoveHandler($event, rowIndex, colIndex)"
                     @mouseup="handleCellMouseUp"
                     :class="{
-                      selected: state.selectedCells[rowIndex][colIndex],
+                      selected: selectedCells[rowIndex][colIndex],
                     }"
                   >
                     <div
                       class="sInput"
                       @dblclick="handleDoubleClick(rowIndex, colIndex)"
                     >
-                      <template v-if="state.editingCells[rowIndex][colIndex]">
+                      <template v-if="editingCells[rowIndex][colIndex]">
                         <input
                           :ref="`input${rowIndex}${colIndex}`"
                           class="sInput"
@@ -39,7 +39,7 @@
 
                       <template v-else>
                         <p class="cellLabel prevent-select">
-                          {{ state.table[rowIndex][colIndex] }}
+                          {{ table[rowIndex][colIndex] }}
                         </p>
                       </template>
                     </div>
@@ -53,20 +53,16 @@
     </div>
   </div>
   <div>
+    <div>
+      Window Height: {{ windowHeight }}px Window Width: {{ windowWidth }}px
+    </div>
     <div>Scroll area w{{ scrollArea.width }}*h{{ scrollArea.height }}</div>
-    <div>
-      top: {{ state.hiddenArea.top }}; bottom: {{ state.hiddenArea.bottom }}
-    </div>
-    <div>
-      left: {{ state.hiddenArea.left }}; right: {{ state.hiddenArea.right }}
-    </div>
-    <div>Visible area w{{ visibleArea.width }}*h{{ visibleArea.height }}</div>
+    <div>top: {{ hiddenArea.top }}; bottom: {{ hiddenArea.bottom }}</div>
+    <div>left: {{ hiddenArea.left }}; right: {{ hiddenArea.right }}</div>
   </div>
 </template>
 
 <script>
-import { reactive } from 'vue';
-
 export default {
   name: 'QSTable',
   props: {
@@ -81,43 +77,39 @@ export default {
   },
   data() {
     return {
-      visibleHeight: 0,
-      visibleWidth: 0,
-      state: reactive({
-        table: this.createTable(this.rows, this.columns, 0),
-        delayedTable: this.createTable(this.rows, this.columns, 0),
-        selectedCells: this.createTable(this.rows, this.columns),
-        isMouseDown: false,
-        editingCells: this.createTable(this.rows, this.columns, false),
-        dragging: false,
-        startRow: -1,
-        startCol: -1,
-        rowsHeight: new Array(this.rows).fill(35),
-        columnsWidth: new Array(this.columns).fill(100),
-        hiddenArea: {
-          top: null,
-          bottom: null,
-          left: null,
-          right: null,
-        },
-        visibleAreaDate: {
-          width: null,
-          height: null,
-        },
-      }),
+      windowHeight: window.innerHeight,
+      windowWidth: window.innerWidth,
+      tableViewHeight: 0,
+      tableViewWidth: 0,
+      table: this.createTable(this.rows, this.columns, 0),
+      delayedTable: this.createTable(this.rows, this.columns, 0),
+      selectedCells: this.createTable(this.rows, this.columns),
+      isMouseDown: false,
+      editingCells: this.createTable(this.rows, this.columns, false),
+      dragging: false,
+      startRow: -1,
+      startCol: -1,
+      rowsHeight: new Array(this.rows).fill(35),
+      columnsWidth: new Array(this.columns).fill(100),
+      hiddenArea: {
+        top: null,
+        bottom: null,
+        left: null,
+        right: null,
+      },
     };
   },
 
   mounted() {
-    this.$nextTick(() => {
-      const { tableVisibleArea } = this.$refs;
-      this.state.visibleAreaDate.height = tableVisibleArea.clientHeight;
-      this.state.visibleAreaDate.width = tableVisibleArea.clientWidth;
-      this.visibleHeight = tableVisibleArea.clientHeight;
-      this.visibleWidth = tableVisibleArea.clientWidth;
-    });
     this.updateWindowSize();
     window.addEventListener('resize', this.updateWindowSize);
+    this.$nextTick(() => {
+      const { tableVisibleArea } = this.$refs;
+      if (tableVisibleArea) {
+        this.tableViewHeight = tableVisibleArea.clientHeight;
+        this.tableViewWidth = tableVisibleArea.clientWidth;
+      }
+    });
   },
   beforeUnmount() {
     window.removeEventListener('resize', this.updateWindowSize);
@@ -126,14 +118,16 @@ export default {
     visibleItems() {
       const rows = [];
       const columns = [];
-      // const avrgWidth = this.visibleArea.width / this.columns.length;
-      // const awrgHeight = this.visibleArea.height / this.rows.length;
-      const { hiddenArea, rowsHeight, columnsWidth } = this.state;
+      const avrgWidth = this.scrollArea.width / this.columns;
+      const awrgHeight = this.scrollArea.height / this.rows;
+      const { hiddenArea } = this;
+      const { rowsHeight } = this;
+      const { columnsWidth } = this;
       rowsHeight.reduce((a, v, i) => {
         const currentHeight = a + v;
         if (
           currentHeight >= hiddenArea.top
-          && currentHeight <= hiddenArea.top + this.visibleArea.height
+          && currentHeight <= hiddenArea.top + this.tableViewHeight
         ) {
           rows.push(i);
         }
@@ -143,7 +137,7 @@ export default {
         const currentWidth = a + v;
         if (
           currentWidth >= hiddenArea.left
-          && currentWidth <= hiddenArea.left + this.visibleArea.width
+          && currentWidth - avrgWidth <= hiddenArea.left + this.tableViewWidth
         ) {
           columns.push(i);
         }
@@ -158,56 +152,29 @@ export default {
       return {
         width: 'fit-content',
         height: 'fit-content',
-        backgroundColor: 'red',
+        backgroundColor: 'green',
         pading: '0px',
-        transform: `translate(${this.state.hiddenArea.left}px, ${this.state.hiddenArea.top}px)`,
+        // transform: `translate(${this.hiddenArea.left}px, ${this.hiddenArea.top}px)`,
       };
     },
     scrollArea() {
       return {
-        height: this.state.rowsHeight.reduce((a, b) => a + b, 0),
-        width: this.state.columnsWidth.reduce((a, b) => a + b, 0),
-      };
-    },
-    visibleArea() {
-      let height = 0;
-      let width = 0;
-
-      if (
-        this.state.hiddenArea.top === null
-        && this.state.visibleAreaDate.height
-        && this.state.visibleAreaDate.width
-      ) {
-        height = this.state.visibleAreaDate.height;
-        width = this.state.visibleAreaDate.width;
-      } else if (this.state.visibleAreaDate.top !== null) {
-        height = this.scrollArea.height
-          - (this.state.hiddenArea.top + this.state.hiddenArea.bottom);
-        width = this.scrollArea.width
-          - (this.state.hiddenArea.left + this.state.hiddenArea.right);
-      }
-      return {
-        height,
-        width,
+        height: this.rowsHeight.reduce((a, b) => a + b, 0),
+        width: this.columnsWidth.reduce((a, b) => a + b, 0),
       };
     },
   },
   methods: {
     updateWindowSize() {
-      this.visibleHeight = window.innerHeight;
-      this.visibleWidth = window.innerWidth;
+      this.windowHeight = window.innerHeight;
+      this.windowWidth = window.innerWidth;
+      const { tableVisibleArea } = this.$refs;
+      if (tableVisibleArea) {
+        this.tableViewHeight = tableVisibleArea.clientHeight;
+        this.tableViewWidth = tableVisibleArea.clientWidth;
+      }
     },
-    // updateVisibleAreaSize() {
-    //   console.log('size changed');
-    //   const { tableVisibleArea } = this.$refs;
-    //   console.log(tableVisibleArea.clientHeight, tableVisibleArea.clientWidth);
-    //   console.log(window.innerHeight, window.innerWidth);
-    //   // this.visibleWidth = window.innerWidth;
-    //   // this.visibleHeight = window.innerHeight;
-    //   this.state.visibleAreaSize.height = window.innerHeight;
-    // },
     handleScroll(event) {
-      // Calculate the number of pixels hidden from each side
       const { scrollTop } = event.target;
       const { scrollLeft } = event.target;
       const { scrollHeight } = event.target;
@@ -220,10 +187,10 @@ export default {
       const pixelsHiddenLeft = scrollLeft;
       const pixelsHiddenRight = scrollWidth - clientWidth - scrollLeft;
 
-      this.state.hiddenArea.top = pixelsHiddenTop;
-      this.state.hiddenArea.bottom = pixelsHiddenBottom;
-      this.state.hiddenArea.left = pixelsHiddenLeft;
-      this.state.hiddenArea.right = pixelsHiddenRight;
+      this.hiddenArea.top = pixelsHiddenTop;
+      this.hiddenArea.bottom = pixelsHiddenBottom;
+      this.hiddenArea.left = pixelsHiddenLeft;
+      this.hiddenArea.right = pixelsHiddenRight;
     },
     createTable(rows, cols, fillValue = null) {
       const table = new Array(rows);
@@ -233,7 +200,7 @@ export default {
       return table;
     },
     updateInput(event, rowI, colI) {
-      this.state.table[rowI][colI] = this.formatValue(event.target.value);
+      this.table[rowI][colI] = this.formatValue(event.target.value);
     },
     formatValue(value) {
       if (value === null) {
@@ -245,7 +212,7 @@ export default {
       return value.trim().replace(/ +/g, ' ');
     },
     handleDoubleClick(rowIndex, colIndex) {
-      this.state.editingCells[rowIndex][colIndex] = true;
+      this.editingCells[rowIndex][colIndex] = true;
       this.$nextTick(() => {
         this.$refs[`input${rowIndex}${colIndex}`][0].focus();
       });
@@ -253,38 +220,34 @@ export default {
     handleKeyPress(event, rowIndex, colIndex) {
       if (event.key === 'Enter') {
         // this.$emit('update:modelValue', this.innerModel);
-        this.state.editingCells[rowIndex][colIndex] = false;
-        this.state.delayedTable[rowIndex][colIndex] = this.state.table[rowIndex][colIndex];
+        this.editingCells[rowIndex][colIndex] = false;
+        this.delayedTable[rowIndex][colIndex] = this.table[rowIndex][colIndex];
       } else if (event.key === 'Escape') {
-        this.state.table[rowIndex][colIndex] = this.state.delayedTable[rowIndex][colIndex];
-        this.state.editingCells[rowIndex][colIndex] = false;
+        this.table[rowIndex][colIndex] = this.delayedTable[rowIndex][colIndex];
+        this.editingCells[rowIndex][colIndex] = false;
       }
     },
     handleBlur(rowIndex, colIndex) {
-      this.state.delayedTable[rowIndex][colIndex] = this.state.table[rowIndex][colIndex];
-      this.state.editingCells[rowIndex][colIndex] = false;
+      this.delayedTable[rowIndex][colIndex] = this.table[rowIndex][colIndex];
+      this.editingCells[rowIndex][colIndex] = false;
     },
     isSelected(rowIndex, columnIndex) {
-      return this.state.selectedCells[rowIndex][columnIndex];
+      return this.selectedCells[rowIndex][columnIndex];
     },
     handleCellMouseDown(event, rowIndex, columnIndex) {
       // event.preventDefault();
-      this.state.dragging = true;
-      this.state.startRow = rowIndex;
-      this.state.startCol = columnIndex;
-      this.state.selectedCells = this.createTable(
-        this.rows,
-        this.columns,
-        false,
-      );
-      this.state.selectedCells[rowIndex][columnIndex] = true;
+      this.dragging = true;
+      this.startRow = rowIndex;
+      this.startCol = columnIndex;
+      this.selectedCells = this.createTable(this.rows, this.columns, false);
+      this.selectedCells[rowIndex][columnIndex] = true;
     },
     mouseMoveHandler(event, rowIndex, columnIndex) {
-      if (this.state.dragging) {
-        const startRow = Math.min(this.state.startRow, rowIndex);
-        const startCol = Math.min(this.state.startCol, columnIndex);
-        const endRow = Math.max(this.state.startRow, rowIndex);
-        const endCol = Math.max(this.state.startCol, columnIndex);
+      if (this.dragging) {
+        const startRow = Math.min(this.startRow, rowIndex);
+        const startCol = Math.min(this.startCol, columnIndex);
+        const endRow = Math.max(this.startRow, rowIndex);
+        const endCol = Math.max(this.startCol, columnIndex);
         const newSelectedCells = this.createTable(
           this.rows,
           this.columns,
@@ -296,11 +259,11 @@ export default {
           }
         }
 
-        this.state.selectedCells = newSelectedCells;
+        this.selectedCells = newSelectedCells;
       }
     },
     handleCellMouseUp() {
-      this.state.dragging = false;
+      this.dragging = false;
     },
   },
 };
@@ -314,7 +277,15 @@ export default {
   min-height: 200px;
   overflow-y: scroll;
   overflow-x: scroll;
+  position: relative;
 }
+
+.virtualTableWrapper {
+  position: sticky;
+  top: 0;
+  left: 0;
+}
+
 .selected {
   background-color: blue;
 }

@@ -11,8 +11,8 @@ export default {
   components: { QSTable },
   data() {
     return {
-      columns: 200,
-      rows: 200,
+      columns: 25,
+      rows: 25,
     };
   },
 };
