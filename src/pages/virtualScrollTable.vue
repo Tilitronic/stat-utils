@@ -5,7 +5,7 @@
 </template>
 
 <script>
-import QSTable from '../components/QSTableCapi.vue';
+import QSTable from './MainAnalysisPage/STable/QSTableCapi.vue';
 
 export default {
   components: { QSTable },

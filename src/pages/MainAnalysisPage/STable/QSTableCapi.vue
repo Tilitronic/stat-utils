@@ -27,15 +27,21 @@
                     >
                       <div
                         class="sInput"
-                        @dblclick="handleDoubleClick(rowIndex, colIndex)"
+                        @dblclick="
+                          handleDoubleClick($event, rowIndex, colIndex)
+                        "
                       >
                         <template v-if="editingCells[rowIndex][colIndex]">
                           <input
-                            :ref="inputRefs[`input${rowIndex}${colIndex}`]"
+                            :ref="
+                              (el) => {
+                                inputRefs[`input${rowIndex}${colIndex}`] = el;
+                              }
+                            "
                             class="sInput"
                             :value="row[colIndex]"
                             @input="updateInput($event, rowIndex, colIndex)"
-                            @blur="handleBlur(rowIndex, colIndex)"
+                            @blur="handleBlur($event, rowIndex, colIndex)"
                             @keydown="
                               handleKeyPress($event, rowIndex, colIndex)
                             "
@@ -85,7 +91,6 @@ const props = defineProps({
     default: 99,
   },
 });
-// const { rows, columns } = props;
 
 const tableVisibleArea = ref(null);
 const inputRefs = reactive({});
@@ -126,13 +131,13 @@ onUnmounted(() => {
 const visibleItems = computed(() => {
   const rows = [];
   const columns = [];
-  const avrgWidth = scrollArea.value.width / columns;
-  // const awrgHeight = scrollArea.height / rows;
+  const avrgWidth = scrollArea.value.width / props.columns;
+  const avrgHeight = scrollArea.value.height / props.rows;
   rowsHeight.value.reduce((a, v, i) => {
     const currentHeight = a + v;
     if (
-      currentHeight >= hiddenArea.top
-      && currentHeight <= hiddenArea.top + tableViewHeight.value
+      currentHeight > hiddenArea.top
+      && currentHeight + avrgHeight < hiddenArea.top + tableViewHeight.value
     ) {
       rows.push(i);
     }
@@ -216,10 +221,13 @@ function formatValue(value) {
   return value.trim().replace(/ +/g, ' ');
 }
 
-function handleDoubleClick(rowIndex, colIndex) {
+function handleDoubleClick(event, rowIndex, colIndex) {
   editingCells.value[rowIndex][colIndex] = true;
   nextTick(() => {
-    inputRefs[`input${rowIndex}${colIndex}`][0].focus();
+    // if (inputRefs[`input${rowIndex}${colIndex}`]) {
+    console.log(inputRefs);
+    inputRefs[`input${rowIndex}${colIndex}`].focus();
+    // }
   });
 }
 
@@ -234,7 +242,8 @@ function handleKeyPress(event, rowIndex, colIndex) {
   }
 }
 
-function handleBlur(rowIndex, colIndex) {
+function handleBlur(event, rowIndex, colIndex) {
+  console.log('blured', rowIndex, colIndex);
   delayedTable.value[rowIndex][colIndex] = table.value[rowIndex][colIndex];
   editingCells.value[rowIndex][colIndex] = false;
 }
