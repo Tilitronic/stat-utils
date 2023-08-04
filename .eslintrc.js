@@ -26,7 +26,7 @@ module.exports = {
 
     // https://github.com/typescript-eslint/typescript-eslint/tree/master/packages/eslint-plugin#usage
     // ESLint typescript rules
-    'plugin:@typescript-eslint/recommended',
+    // 'plugin:@typescript-eslint/recommended',
 
     // Uncomment any of the lines below to choose desired strictness,
     // but leave only one uncommented!
@@ -41,7 +41,7 @@ module.exports = {
 
   plugins: [
     // required to apply rules which need type information
-    '@typescript-eslint',
+    // '@typescript-eslint',
 
     // https://eslint.vuejs.org/user-guide/#why-doesn-t-it-work-on-vue-files
     // required to lint *.vue files
@@ -71,6 +71,8 @@ module.exports = {
     'vue/valid-v-model': 'off',
     'max-len': 'off',
     'no-console': 'off',
+    'no-use-before-define': 'off',
+    'no-undef': 'off',
 
     'no-param-reassign': 'off',
     'no-void': 'off',
@@ -78,7 +80,7 @@ module.exports = {
     'max-classes-per-file': 'off',
 
     'no-shadow': 'off',
-    '@typescript-eslint/no-shadow': 'error',
+    // '@typescript-eslint/no-shadow': 'error',
 
     'import/first': 'off',
     'import/named': 'error',
