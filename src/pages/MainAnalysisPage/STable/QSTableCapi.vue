@@ -116,7 +116,7 @@ const isShift = ref(false);
 onMounted(() => {
   updateWindowSize();
   window.addEventListener('resize', updateWindowSize);
-  // document.addEventListener('keydown', handleDocumentKeyPress);
+  document.addEventListener('keydown', handleDocumentKeyPress);
   if (tableVisibleArea.value) {
     tableViewHeight.value = tableVisibleArea.value.clientHeight;
     tableViewWidth.value = tableVisibleArea.value.clientWidth;
@@ -125,7 +125,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener('resize', updateWindowSize);
-  // document.addEventListener('keydown', handleDocumentKeyPress);
+  document.addEventListener('keydown', handleDocumentKeyPress);
 });
 
 const visibleDataStyle = computed(() => ({
@@ -204,41 +204,37 @@ function handleCellMouseUp() {
   dragging.value = false;
 }
 
-// function handleDocumentKeyPress(event) {
-//   // event.preventDefault();
-//   console.log('!!!!!!!!!!!!', event.key);
-//   if (!lastTouchedCell.value || editingCoordinate.value) {
-//     return;
-//   }
-//   // event.key === 'Enter'
-//   // event.key === 'Tab'
-//   const [rowCoor, colCoor] = lastTouchedCell.value.split(',');
+function handleDocumentKeyPress(event) {
+  // event.preventDefault();
+  console.log('!!!!!!!!!!!!', event.key);
+  if (!lastTouchedCell.value || editingCoordinate.value) {
+    return;
+  }
+  // event.key === 'Enter'
+  // event.key === 'Tab'
+  const [rowCoor, colCoor] = lastTouchedCell.value.split(',');
 
-//   if (event.key === 'ArrowDown') {
-//     event.preventDefault();
-//     const rowBelow = parseInt(rowCoor, 10) + 1;
-//     console.log(rowBelow <= props.rows, rowBelow);
-//     console.log(selectedCells.value[rowBelow]);
-//     if (rowBelow <= props.columns) {
-//       selectedCells.value[rowCoor][colCoor] = false;
-//       selectedCells.value[rowBelow][colCoor] = true;
-//       lastTouchedCell.value = `${rowBelow},${colCoor}`;
-//     }
-//   } else if (event.key === 'Up') {
-//     console.log(rowCoor);
-//   } else if (event.key === 'Left') {
-//     console.log(rowCoor);
-//   } else if (event.key === 'Right') {
-//     console.log(rowCoor);
-//   }
-// }
+  if (event.key === 'ArrowDown') {
+    event.preventDefault();
+    const rowBelow = parseInt(rowCoor, 10) + 1;
+    console.log(rowBelow < props.rows, rowBelow, props.columns);
+    console.log(selectedCells.value[rowBelow]);
+    if (rowBelow < props.columns) {
+      selectedCells.value[rowCoor][colCoor] = false;
+      selectedCells.value[rowBelow][colCoor] = true;
+      lastTouchedCell.value = `${rowBelow},${colCoor}`;
+    }
+  } else if (event.key === 'Up') {
+    console.log(rowCoor);
+  } else if (event.key === 'Left') {
+    console.log(rowCoor);
+  } else if (event.key === 'Right') {
+    console.log(rowCoor);
+  }
+}
 
 const {
-  hiddenArea,
-  scrollArea,
-  calculateHiddenArea,
-  windowHeight,
-  windowWidth,
+  hiddenArea, scrollArea, windowHeight, windowWidth,
 } = dimentionsCalculation(
   props,
   rowsHeight,
@@ -247,12 +243,13 @@ const {
   tableViewWidth,
 );
 
-const { visibleItems } = virtualScroll(
+const { visibleItems, calculateHiddenArea } = virtualScroll(
   props,
   rowsHeight,
   columnsWidth,
   tableViewHeight,
   tableViewWidth,
+  scrollArea,
 );
 
 const {

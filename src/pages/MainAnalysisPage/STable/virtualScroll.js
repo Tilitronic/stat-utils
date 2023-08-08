@@ -6,6 +6,7 @@ export default function virtualScroll(
   columnsWidth,
   tableViewHeight,
   tableViewWidth,
+  scrollArea,
 ) {
   // STATE
   const hiddenArea = reactive({
@@ -14,12 +15,6 @@ export default function virtualScroll(
     left: null,
     right: null,
   });
-
-  // COMPUTED
-  const scrollArea = computed(() => ({
-    height: rowsHeight.value.reduce((a, b) => a + b, 0),
-    width: columnsWidth.value.reduce((a, b) => a + b, 0),
-  }));
 
   const visibleItems = computed(() => {
     const rows = [];
@@ -74,5 +69,6 @@ export default function virtualScroll(
 
   return {
     visibleItems,
+    calculateHiddenArea,
   };
 }
