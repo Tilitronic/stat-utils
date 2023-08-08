@@ -31,7 +31,9 @@
                           handleDoubleClick($event, rowIndex, colIndex)
                         "
                       >
-                        <template v-if="editingCells[rowIndex][colIndex]">
+                        <template
+                          v-if="editingCoordinate === rowIndex + ',' + colIndex"
+                        >
                           <input
                             :ref="
                               (el) => {
@@ -43,7 +45,7 @@
                             @input="updateInput($event, rowIndex, colIndex)"
                             @blur="handleBlur($event, rowIndex, colIndex)"
                             @keydown="
-                              handleKeyPress($event, rowIndex, colIndex)
+                              handleInputKeyPress($event, rowIndex, colIndex)
                             "
                           />
                         </template>
@@ -80,8 +82,11 @@ import {
   ref, reactive, computed, onMounted, onUnmounted, nextTick,
 } from 'vue';
 
+import virtualScroll from './virtualScroll';
+import dimentionsCalculation from './dimentionsCalculation';
+import navigationAndSelection from './navigationAndSelection';
+
 const props = defineProps({
-  // Use defineProps to access props
   columns: {
     type: Number,
     default: 26,
@@ -95,29 +100,23 @@ const props = defineProps({
 const tableVisibleArea = ref(null);
 const inputRefs = reactive({});
 
-const windowHeight = ref(window.innerHeight);
-const windowWidth = ref(window.innerWidth);
 const tableViewHeight = ref(0);
 const tableViewWidth = ref(0);
 const table = ref(createTable(props.rows, props.columns, 0));
 const delayedTable = ref(createTable(props.rows, props.columns, 0));
-const selectedCells = ref(createTable(props.rows, props.columns));
-const editingCells = ref(createTable(props.rows, props.columns, false));
+const editingCoordinate = ref('');
 const dragging = ref(false);
 const startRow = ref(-1);
 const startCol = ref(-1);
 const rowsHeight = ref(new Array(props.rows).fill(35));
 const columnsWidth = ref(new Array(props.columns).fill(100));
-const hiddenArea = reactive({
-  top: null,
-  bottom: null,
-  left: null,
-  right: null,
-});
+const isCtrl = ref(false);
+const isShift = ref(false);
 
 onMounted(() => {
   updateWindowSize();
   window.addEventListener('resize', updateWindowSize);
+  // document.addEventListener('keydown', handleDocumentKeyPress);
   if (tableVisibleArea.value) {
     tableViewHeight.value = tableVisibleArea.value.clientHeight;
     tableViewWidth.value = tableVisibleArea.value.clientWidth;
@@ -126,37 +125,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener('resize', updateWindowSize);
-});
-
-const visibleItems = computed(() => {
-  const rows = [];
-  const columns = [];
-  const avrgWidth = scrollArea.value.width / props.columns;
-  const avrgHeight = scrollArea.value.height / props.rows;
-  rowsHeight.value.reduce((a, v, i) => {
-    const currentHeight = a + v;
-    if (
-      currentHeight > hiddenArea.top
-      && currentHeight + avrgHeight < hiddenArea.top + tableViewHeight.value
-    ) {
-      rows.push(i);
-    }
-    return a + v;
-  }, 0);
-  columnsWidth.value.reduce((a, v, i) => {
-    const currentWidth = a + v;
-    if (
-      currentWidth >= hiddenArea.left
-      && currentWidth - avrgWidth <= hiddenArea.left + tableViewWidth.value
-    ) {
-      columns.push(i);
-    }
-    return a + v;
-  }, 0);
-  return {
-    rows,
-    columns,
-  };
+  // document.addEventListener('keydown', handleDocumentKeyPress);
 });
 
 const visibleDataStyle = computed(() => ({
@@ -164,11 +133,6 @@ const visibleDataStyle = computed(() => ({
   height: 'fit-content',
   backgroundColor: 'green',
   pading: '0px',
-}));
-
-const scrollArea = computed(() => ({
-  height: rowsHeight.value.reduce((a, b) => a + b, 0),
-  width: columnsWidth.value.reduce((a, b) => a + b, 0),
 }));
 
 function updateWindowSize() {
@@ -181,22 +145,7 @@ function updateWindowSize() {
 }
 
 function handleScroll(event) {
-  const { scrollTop } = event.target;
-  const { scrollLeft } = event.target;
-  const { scrollHeight } = event.target;
-  const { scrollWidth } = event.target;
-  const { clientHeight } = event.target;
-  const { clientWidth } = event.target;
-
-  const pixelsHiddenTop = scrollTop;
-  const pixelsHiddenBottom = scrollHeight - clientHeight - scrollTop;
-  const pixelsHiddenLeft = scrollLeft;
-  const pixelsHiddenRight = scrollWidth - clientWidth - scrollLeft;
-
-  hiddenArea.top = pixelsHiddenTop;
-  hiddenArea.bottom = pixelsHiddenBottom;
-  hiddenArea.left = pixelsHiddenLeft;
-  hiddenArea.right = pixelsHiddenRight;
+  calculateHiddenArea(event);
 }
 
 function createTable(rows, cols, fillValue = null) {
@@ -222,64 +171,105 @@ function formatValue(value) {
 }
 
 function handleDoubleClick(event, rowIndex, colIndex) {
-  editingCells.value[rowIndex][colIndex] = true;
+  editingCoordinate.value = `${rowIndex},${colIndex}`;
   nextTick(() => {
-    // if (inputRefs[`input${rowIndex}${colIndex}`]) {
-    console.log(inputRefs);
     inputRefs[`input${rowIndex}${colIndex}`].focus();
-    // }
   });
 }
 
-function handleKeyPress(event, rowIndex, colIndex) {
+function handleInputKeyPress(event, rowIndex, colIndex) {
   if (event.key === 'Enter') {
-    // this.$emit('update:modelValue', this.innerModel);
-    editingCells.value[rowIndex][colIndex] = false;
+    editingCoordinate.value = '';
     delayedTable.value[rowIndex][colIndex] = table.value[rowIndex][colIndex];
   } else if (event.key === 'Escape') {
     table.value[rowIndex][colIndex] = delayedTable.value[rowIndex][colIndex];
-    editingCells.value[rowIndex][colIndex] = false;
+    editingCoordinate.value = '';
   }
 }
 
 function handleBlur(event, rowIndex, colIndex) {
-  console.log('blured', rowIndex, colIndex);
   delayedTable.value[rowIndex][colIndex] = table.value[rowIndex][colIndex];
-  editingCells.value[rowIndex][colIndex] = false;
-}
-
-function isSelected(rowIndex, columnIndex) {
-  return selectedCells.value[rowIndex][columnIndex];
+  editingCoordinate.value = '';
 }
 
 function handleCellMouseDown(event, rowIndex, columnIndex) {
-  dragging.value = true;
-  startRow.value = rowIndex;
-  startCol.value = columnIndex;
-  selectedCells.value = createTable(props.rows, props.columns, false);
-  selectedCells.value[rowIndex][columnIndex] = true;
+  selectionOnMouseDown(rowIndex, columnIndex);
 }
 
 function mouseMoveHandler(event, rowIndex, columnIndex) {
-  if (dragging.value) {
-    const startRowI = Math.min(startRow.value, rowIndex);
-    const startColI = Math.min(startCol.value, columnIndex);
-    const endRow = Math.max(startRow.value, rowIndex);
-    const endCol = Math.max(startCol.value, columnIndex);
-    const newSelectedCells = createTable(props.rows, props.columns, false);
-    for (let i = startRowI; i <= endRow; i++) {
-      for (let j = startColI; j <= endCol; j++) {
-        newSelectedCells[i][j] = true;
-      }
-    }
-
-    selectedCells.value = newSelectedCells;
-  }
+  selectionOnMouseMove(rowIndex, columnIndex);
 }
 
 function handleCellMouseUp() {
   dragging.value = false;
 }
+
+// function handleDocumentKeyPress(event) {
+//   // event.preventDefault();
+//   console.log('!!!!!!!!!!!!', event.key);
+//   if (!lastTouchedCell.value || editingCoordinate.value) {
+//     return;
+//   }
+//   // event.key === 'Enter'
+//   // event.key === 'Tab'
+//   const [rowCoor, colCoor] = lastTouchedCell.value.split(',');
+
+//   if (event.key === 'ArrowDown') {
+//     event.preventDefault();
+//     const rowBelow = parseInt(rowCoor, 10) + 1;
+//     console.log(rowBelow <= props.rows, rowBelow);
+//     console.log(selectedCells.value[rowBelow]);
+//     if (rowBelow <= props.columns) {
+//       selectedCells.value[rowCoor][colCoor] = false;
+//       selectedCells.value[rowBelow][colCoor] = true;
+//       lastTouchedCell.value = `${rowBelow},${colCoor}`;
+//     }
+//   } else if (event.key === 'Up') {
+//     console.log(rowCoor);
+//   } else if (event.key === 'Left') {
+//     console.log(rowCoor);
+//   } else if (event.key === 'Right') {
+//     console.log(rowCoor);
+//   }
+// }
+
+const {
+  hiddenArea,
+  scrollArea,
+  calculateHiddenArea,
+  windowHeight,
+  windowWidth,
+} = dimentionsCalculation(
+  props,
+  rowsHeight,
+  columnsWidth,
+  tableViewHeight,
+  tableViewWidth,
+);
+
+const { visibleItems } = virtualScroll(
+  props,
+  rowsHeight,
+  columnsWidth,
+  tableViewHeight,
+  tableViewWidth,
+);
+
+const {
+  selectedCells,
+  selectionOnMouseDown,
+  selectionOnMouseMove,
+  lastTouchedCell,
+} = navigationAndSelection(
+  props,
+  createTable,
+  dragging,
+  startRow,
+  startCol,
+  editingCoordinate,
+  isCtrl,
+  isShift,
+);
 </script>
 
 <style>
