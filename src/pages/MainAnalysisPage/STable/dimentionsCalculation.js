@@ -6,6 +6,7 @@ export default function dimentionsCalculation(
   columnsWidth,
   tableViewHeight,
   tableViewWidth,
+  cellBorder,
 ) {
   // STATE
   const windowHeight = ref(window.innerHeight);
@@ -19,8 +20,24 @@ export default function dimentionsCalculation(
 
   // COMPUTED
   const scrollArea = computed(() => ({
-    height: rowsHeight.value.reduce((a, b) => a + b, 0),
-    width: columnsWidth.value.reduce((a, b) => a + b, 0),
+    height: rowsHeight.value.reduce((a, b, i) => {
+      if (i === 0) {
+        return a + b + cellBorder * 2;
+      }
+      if (i + 1 === rowsHeight.lengh) {
+        return a + b + cellBorder * 2;
+      }
+      return a + b + cellBorder;
+    }, 0),
+    width: columnsWidth.value.reduce((a, b, i) => {
+      if (i === 0) {
+        return a + b + cellBorder * 2;
+      }
+      if (i + 1 === rowsHeight.lengh) {
+        return a + b + cellBorder * 2;
+      }
+      return a + b + cellBorder;
+    }, 0),
   }));
 
   // METHODS

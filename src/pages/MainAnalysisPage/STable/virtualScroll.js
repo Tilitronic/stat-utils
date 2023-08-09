@@ -23,9 +23,10 @@ export default function virtualScroll(
     const avrgHeight = scrollArea.value.height / props.rows;
     rowsHeight.value.reduce((a, v, i) => {
       const currentHeight = a + v;
+      console.log('currentHeight', currentHeight);
       if (
-        currentHeight > hiddenArea.top
-        && currentHeight + avrgHeight < hiddenArea.top + tableViewHeight.value
+        currentHeight >= hiddenArea.top
+        && currentHeight < hiddenArea.top + tableViewHeight.value + avrgHeight
       ) {
         rows.push(i);
       }

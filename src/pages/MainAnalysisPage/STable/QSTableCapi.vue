@@ -112,6 +112,7 @@ const rowsHeight = ref(new Array(props.rows).fill(35));
 const columnsWidth = ref(new Array(props.columns).fill(100));
 const isCtrl = ref(false);
 const isShift = ref(false);
+const cellBorder = 1;
 
 onMounted(() => {
   updateWindowSize();
@@ -131,7 +132,6 @@ onUnmounted(() => {
 const visibleDataStyle = computed(() => ({
   width: 'fit-content',
   height: 'fit-content',
-  backgroundColor: 'green',
   pading: '0px',
 }));
 
@@ -241,6 +241,7 @@ const {
   columnsWidth,
   tableViewHeight,
   tableViewWidth,
+  cellBorder,
 );
 
 const { visibleItems, calculateHiddenArea } = virtualScroll(
@@ -286,8 +287,12 @@ const {
   left: 0;
 }
 
+.virtualTableWrapper {
+  background-color: rgb(88, 128, 114);
+}
+
 .selected {
-  background-color: blue;
+  background-color: rgba(111, 78, 116, 0.418);
 }
 
 .sInput {
@@ -295,14 +300,37 @@ const {
   max-height: 35px;
   min-height: 35px;
   min-width: 100px;
+  display: flex;
+  align-items: center;
 }
 .sInput input {
   max-width: 100%;
 }
 
+.labelWrapper {
+  display: flex;
+  align-items: center;
+}
 .cellLabel {
   max-width: 100%;
-  padding: 0;
+  padding: 2px;
+  margin: 0;
   overflow: hidden;
+}
+
+table {
+  border-collapse: collapse;
+}
+
+td {
+  padding: 0;
+  margin: 0;
+  background-color: rgb(165, 158, 158);
+  border: solid 1px black;
+}
+
+tr {
+  padding: 0;
+  margin: 0;
 }
 </style>
